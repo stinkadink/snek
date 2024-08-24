@@ -13,15 +13,15 @@ typedef struct {
 const Position directions[4] = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
 
 const int fieldSize = 16;
-const int winLength = 200;
-const float gameSpeed = 0.001f;
+const int winLength = 200; // placeholder
+const clock_t gameSpeed = 10; // in ms
 
 char **createNewField();
 void updateField(char **, Position *, int, Position);
 
 void createNewPoint(Position *, char **);
 
-void delay(float);
+void delay(clock_t);
 
 void draw(char **);
 
@@ -51,6 +51,17 @@ int main() {
             pointExists = true;
         }
 
+        if (movement == -1) {
+            draw(field);
+            printf("Control the snake with WASD!\n");
+            while (movement == -1) {
+                move(snake, snakeSize, &movement);
+            }
+            updateField(field, snake, snakeSize, point);
+            draw(field);
+            delay(gameSpeed);
+        }
+
         move(snake, snakeSize, &movement);
 
         if ((field[snake[0].x][snake[0].y] == '#') || (field[snake[0].x][snake[0].y] == 'O')) {
@@ -60,18 +71,14 @@ int main() {
             win = true;
         }
 
-        if (movement != -1) {
-            updateField(field, snake, snakeSize, point);
-            draw(field);
-        }
-
-        delay(gameSpeed);
-
         if (snake[0].x == point.x && snake[0].y == point.y) {
             pointExists = false;
             score = snakeSize++;
         }
 
+        updateField(field, snake, snakeSize, point);
+        draw(field);
+        delay(gameSpeed);
     }
 
     if (win) {
@@ -88,7 +95,7 @@ int main() {
     free(field);
     free(snake);
 
-    delay(0.5f);
+    delay(500);
 
     printf("\nPress R to play again!");
     if (kbhit()) {
@@ -142,11 +149,11 @@ char **createNewField() {
 }
 
 void updateField(char **field, Position *snake, int size, Position point) {
-    field[snake[0].x][snake[0].y] = '0';
     if (size > 1) {
         field[snake[1].x][snake[1].y] = 'O';
     }
     field[snake[size].x][snake[size].y] = ' ';
+    field[snake[0].x][snake[0].y] = '0';
     field[point.x][point.y] = 'X';
 }
 
@@ -229,10 +236,9 @@ void draw(char **field) {
     }
 }
 
-void delay(float seconds) {
-    float delayTime = seconds * 1000;
+void delay(clock_t seconds) {
     int startTime = clock();
-    while (clock() < startTime + delayTime) {
+    while (clock() < startTime + seconds) {
         ;
     }
 }
