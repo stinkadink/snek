@@ -14,7 +14,8 @@ const Position directions[4] = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
 
 const int fieldSize = 16;
 const int winLength = 200;
-const float gameSpeed = 0.001f;
+// made the game slower because fuck you
+const float gameSpeed = 0.01f;
 
 char **createNewField();
 void updateField(char **, Position *, int, Position);
