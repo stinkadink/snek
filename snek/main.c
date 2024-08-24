@@ -14,8 +14,7 @@ const Position directions[4] = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
 
 const int fieldSize = 16;
 const int winLength = 200;
-// made the game slower because fuck you
-const float gameSpeed = 0.01f;
+const float gameSpeed = 0.001f;
 
 char **createNewField();
 void updateField(char **, Position *, int, Position);
@@ -53,11 +52,18 @@ int main() {
         }
 
         move(snake, snakeSize, &movement);
-        if (movement != -1) {
-            updateField(field, snake, snakeSize, point);
+
+        if ((field[snake[0].x][snake[0].y] == '#') || (field[snake[0].x][snake[0].y] == 'O')) {
+            gameOver = true;
+        } else if (snakeSize >= winLength) {
+            gameOver = true;
+            win = true;
         }
 
-        draw(field);
+        if (movement != -1) {
+            updateField(field, snake, snakeSize, point);
+            draw(field);
+        }
 
         delay(gameSpeed);
 
@@ -66,19 +72,6 @@ int main() {
             score = snakeSize++;
         }
 
-        if (((snake[0].x <= 0) || (snake[0].x >= fieldSize - 1)) || ((snake[0].y <= 0) || (snake[0].y >= fieldSize - 1))) {
-            gameOver = true;
-        } else if (snakeSize >= winLength) {
-            gameOver = true;
-            win = true;
-        }
-        else {
-            for (int i = 1; i < snakeSize; ++i) {
-                if (snake[0].x == snake[i].x && snake[0].y == snake[i].y) {
-                    gameOver = true;
-                }
-            }
-        }
     }
 
     if (win) {
