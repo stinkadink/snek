@@ -4,6 +4,7 @@
 #include <time.h>
 #include <conio.h>
 #include <ctype.h>
+#include <string.h>
 
 typedef struct {
     int x;
@@ -11,10 +12,12 @@ typedef struct {
 } Position;
 
 const Position directions[4] = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
+const char moveKeys[4] = "wasd";
 
 const int fieldSize = 16;
-const int winLength = 200; // placeholder
 const clock_t gameSpeed = 10; // in ms
+
+void increaseCapacity(Position *, int *);
 
 char **createNewField();
 void updateField(char **, Position *, int, Position);
@@ -33,7 +36,8 @@ int main() {
 
     char **field = createNewField();
 
-    Position *snake = (Position *)malloc((winLength + 1) * sizeof(Position));
+    int snakeCapacity = 8;
+    Position *snake = malloc(snakeCapacity * sizeof(Position));
     snake[0].x = (fieldSize - 1) / 2;
     snake[0].y = snake[0].x;
     snake[1] = snake[0];
@@ -57,6 +61,10 @@ int main() {
             while (movement == -1) {
                 move(snake, snakeSize, &movement);
             }
+            if ((field[snake[0].x][snake[0].y] == '#') || (field[snake[0].x][snake[0].y] == 'O')) {
+                gameOver = true;
+                break;
+            }
             updateField(field, snake, snakeSize, point);
             draw(field);
             delay(gameSpeed);
@@ -66,28 +74,24 @@ int main() {
 
         if ((field[snake[0].x][snake[0].y] == '#') || (field[snake[0].x][snake[0].y] == 'O')) {
             gameOver = true;
-        } else if (snakeSize >= winLength) {
-            gameOver = true;
-            win = true;
-        }
-
-        if (snake[0].x == point.x && snake[0].y == point.y) {
-            pointExists = false;
-            score = snakeSize++;
         }
 
         updateField(field, snake, snakeSize, point);
         draw(field);
+
+        if ((snake[0].x == point.x) && (snake[0].y == point.y)) {
+            pointExists = false;
+            score = snakeSize++;
+            if ((snakeSize + 1) == snakeCapacity) {
+                increaseCapacity(snake, &snakeCapacity);
+            }
+        }
+
         delay(gameSpeed);
     }
 
-    if (win) {
-        printf("You win!\n"
-               "Score: %d", score);
-    } else {
-        printf("Game over!\n"
-               "Score: %d", score);
-    }
+    printf("Game over!\n"
+           "Score: %d", score);
 
     for (int i = 0; i < fieldSize; ++i) {
         free(field[i]);
@@ -116,10 +120,20 @@ int main() {
     return 0;
 }
 
+void increaseCapacity(Position *snake, int *size) {
+    *size += 8;
+    snake = realloc(snake, *size * sizeof(Position));
+    if (!snake) {
+        printf("This fucking snake doesn't fit in the computer anymore"
+               "\nPlease install more RAM!");
+        exit(-1);
+    }
+}
+
 char **createNewField() {
-    char **field = (char **)malloc(fieldSize * sizeof(char *));
+    char **field = malloc(fieldSize * sizeof(char *));
     for (int i = 0; i < fieldSize; ++i) {
-        field[i] = (char *)malloc(fieldSize * sizeof(char));
+        field[i] = malloc(fieldSize * sizeof(char));
     }
 
     // Borders
@@ -212,18 +226,21 @@ void move(Position *snake, int snakeSize, int *direction) {
                 *direction = 2;
             }
             break;
+        case 'p':
+            *direction = -1;
         default:
             if (*direction != -1) {
                 next = directions[*direction];
             }
     }
-
-    next.x += snake[0].x;
-    next.y += snake[0].y;
-    for (int i = snakeSize; i >= 0; --i) {
-        snake[i] = snake[i - 1];
+    if (*direction != -1) {
+        next.x += snake[0].x;
+        next.y += snake[0].y;
+        for (int i = snakeSize; i >= 0; --i) {
+            snake[i] = snake[i - 1];
+        }
+        snake[0] = next;
     }
-    snake[0] = next;
 }
 
 void draw(char **field) {
