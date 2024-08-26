@@ -11,15 +11,14 @@ typedef struct {
     int y;
 } Position;
 
-const Position directions[4] = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
-const char moveKeys[4] = "wasd";
+int fieldSize, gameSpeed;
 
-const int fieldSize = 16;
-const clock_t gameSpeed = 10; // in ms
+const Position directions[4] = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
 
 void increaseCapacity(Position *, int *);
 
-char **createNewField();
+char chooseFieldType();
+char **createNewField(int *, int *, char);
 void updateField(char **, Position *, int, Position);
 
 void createNewPoint(Position *, char **);
@@ -34,17 +33,26 @@ int main() {
     restart:
     srand(time(NULL));
 
-    char **field = createNewField();
+    char option = chooseFieldType();
+    char **field = createNewField(&fieldSize, &gameSpeed, option);
+    if (!field) {
+        goto restart;
+    }
 
     int snakeCapacity = 8;
     Position *snake = malloc(snakeCapacity * sizeof(Position));
-    snake[0].x = (fieldSize - 1) / 2;
-    snake[0].y = snake[0].x;
+    for (int i = 0; i < fieldSize; ++i) {
+        for (int j = 0; j < fieldSize; ++j) {
+            if (field[i][j] == '0') {
+                snake[0].x = i;
+                snake[0].y = j;
+            }
+        }
+    }
     snake[1] = snake[0];
     int snakeSize = 1;
 
     bool gameOver = false;
-    bool win = false;
     bool pointExists = false;
     int movement = -1;
     int score = 0;
@@ -130,36 +138,83 @@ void increaseCapacity(Position *snake, int *size) {
     }
 }
 
-char **createNewField() {
-    char **field = malloc(fieldSize * sizeof(char *));
-    for (int i = 0; i < fieldSize; ++i) {
-        field[i] = malloc(fieldSize * sizeof(char));
+char chooseFieldType() {
+    system("cls");
+    printf("Snek!"
+           "\n1. Default map"
+           "\n2. Custom map");
+    while (!kbhit()) {
+        ;
     }
+    char option = getch();
+    if (option == '1' || option == '2') {
+        return option;
+    } else return chooseFieldType();
+}
 
-    // Borders
-    for (int j = 0; j < fieldSize; ++j) {
-        field[0][j] = '#';
-    }
-    for (int i = 1; i < fieldSize; ++i) {
-        field[i][fieldSize - 1] = '#';
-    }
-    for (int j = fieldSize - 1; j >= 0; --j) {
-        field[fieldSize - 1][j] = '#';
-    }
-    for (int i = fieldSize - 1; i > 0; --i) {
-        field[i][0] = '#';
-    }
+char **createNewField(int *size, int *speed, char option) {
+        if (option == '1') {
+            *size = 22;
+            char **field = malloc((*size) * sizeof(char *));
+            for (int i = 0; i < *size; ++i) {
+                field[i] = malloc(*size * sizeof(char));
+            }
+            *speed = 10;
 
-    // Within the borders
-    for (int i = 1; i < fieldSize - 1; ++i) {
-        for (int j = 1; j < fieldSize - 1; ++j) {
-            field[i][j] = ' ';
+            for (int j = 0; j < *size; ++j) {
+                field[0][j] = '#';
+            }
+            for (int i = 1; i < *size; ++i) {
+                field[i][*size - 1] = '#';
+            }
+            for (int j = *size - 2; j >= 0; --j) {
+                field[*size - 1][j] = '#';
+            }
+            for (int i = *size - 2; i >= 0; --i) {
+                field[i][0] = '#';
+            }
+
+            for (int i = 1; i < *size - 1; ++i) {
+                for (int j = 1; j < *size - 1; ++j) {
+                    field[i][j] = ' ';
+                }
+            }
+
+            field[((*size) - 1) / 2][((*size) - 1) / 2] = '0';
+            return field;
         }
-    }
 
-    field[(fieldSize - 1) / 2][(fieldSize - 1) / 2] = '0';
+        if (option == '2') {
+            system("cls");
+            char fileName[50];
+            printf("Enter the name of the file: ");
+            scanf("%s", fileName);
 
-    return field;
+            char filePath[200] = "../fields/";
+            strcat(filePath, fileName);
+
+            if (!freopen(filePath, "r", stdin)) {
+                printf("File not found.\n");
+                getch();
+                return NULL;
+            }
+            scanf("Field Size: %d\n", size);
+            scanf("Game Speed: %d\n", speed);
+            char **field = malloc(*size * sizeof(char *));
+            for (int i = 0; i < *size; ++i) {
+                field[i] = malloc(*size * sizeof(char));
+            }
+
+            for (int i = 0; i < *size; ++i) {
+                for (int j = 0; j < *size; ++j) {
+                    scanf("%c", &field[i][j]);
+                    getchar();
+                }
+            }
+
+            freopen("CON", "r", stdin);
+            return field;
+        }
 }
 
 void updateField(char **field, Position *snake, int size, Position point) {
@@ -177,7 +232,7 @@ void createNewPoint(Position *point, char **field) {
     do {
         point->x = (rand() % (fieldSize - 2)) + 1;
         point->y = (rand() % (fieldSize - 2)) + 1;
-    } while (field[point->x][point->y] == '0');
+    } while ((field[point->x][point->y] == '0') || (field[point->x][point->y] == '#'));
 }
 
 void move(Position *snake, int snakeSize, int *direction) {
