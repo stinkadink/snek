@@ -1,4 +1,3 @@
-Field Size: 16
 Game Speed: 100
 # # # # # # # # # # # # # # # #
 #                             #
@@ -16,10 +15,3 @@ Game Speed: 100
 #                             #
 #                             #
 # # # # # # # # # # # # # # # #
-
-- make sure the field size is accurate
-- make sure the field is square shaped over all (will change later)
-- '#' and 'O' count as obstacles, anything else will get overwritten by the snake and fruits
-- game speed changes how fast the game gets drawn (ex. at 1000 it will update every 1000 ms)
-- at faster game speeds, it may run slower than expected due to the CPU not being fast enough
-- at larger fields, the screen may flicker a lot due to redrawing the whole field over and over

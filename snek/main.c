@@ -11,14 +11,15 @@ typedef struct {
     int y;
 } Position;
 
-int fieldSize, gameSpeed;
+int gameSpeed;
+Position fieldSize;
 
 const Position directions[4] = {{0, 1}, {-1, 0}, {0, -1}, {1, 0}};
 
-void increaseCapacity(Position *, int *);
+void increaseCapacity(Position **, int *);
 
 char chooseFieldType();
-char **createNewField(int *, int *, char);
+char **createNewField(Position *, int *, char);
 void updateField(char **, Position *, int, Position);
 
 void createNewPoint(Position *, char **);
@@ -41,8 +42,8 @@ int main() {
 
     int snakeCapacity = 8;
     Position *snake = malloc(snakeCapacity * sizeof(Position));
-    for (int i = 0; i < fieldSize; ++i) {
-        for (int j = 0; j < fieldSize; ++j) {
+    for (int i = 0; i < fieldSize.x; ++i) {
+        for (int j = 0; j < fieldSize.y; ++j) {
             if (field[i][j] == '0') {
                 snake[0].x = i;
                 snake[0].y = j;
@@ -91,7 +92,7 @@ int main() {
             pointExists = false;
             score = snakeSize++;
             if ((snakeSize + 1) == snakeCapacity) {
-                increaseCapacity(snake, &snakeCapacity);
+                increaseCapacity(&snake, &snakeCapacity);
             }
         }
 
@@ -101,7 +102,7 @@ int main() {
     printf("Game over!\n"
            "Score: %d", score);
 
-    for (int i = 0; i < fieldSize; ++i) {
+    for (int i = 0; i < fieldSize.x; ++i) {
         free(field[i]);
     }
     free(field);
@@ -128,10 +129,10 @@ int main() {
     return 0;
 }
 
-void increaseCapacity(Position *snake, int *size) {
+void increaseCapacity(Position **snake, int *size) {
     *size += 8;
-    snake = realloc(snake, *size * sizeof(Position));
-    if (!snake) {
+    *snake = realloc(*snake, *size * sizeof(Position));
+    if (!(*snake)) {
         printf("This fucking snake doesn't fit in the computer anymore"
                "\nPlease install more RAM!");
         exit(-1);
@@ -152,35 +153,39 @@ char chooseFieldType() {
     } else return chooseFieldType();
 }
 
-char **createNewField(int *size, int *speed, char option) {
+char **createNewField(Position *size, int *speed, char option) {
         if (option == '1') {
-            *size = 22;
-            char **field = malloc((*size) * sizeof(char *));
-            for (int i = 0; i < *size; ++i) {
-                field[i] = malloc(*size * sizeof(char));
+            size->x = size->y = 22;
+            char **field = malloc((size->x) * sizeof(char *));
+            for (int i = 0; i < size->x; ++i) {
+                field[i] = malloc(size->y * sizeof(char));
             }
             *speed = 10;
-
-            for (int j = 0; j < *size; ++j) {
+            // borders
+            // upper border
+            for (int j = 0; j < size->y; ++j) {
                 field[0][j] = '#';
             }
-            for (int i = 1; i < *size; ++i) {
-                field[i][*size - 1] = '#';
+            // right border
+            for (int i = 1; i < size->x; ++i) {
+                field[i][size->y - 1] = '#';
             }
-            for (int j = *size - 2; j >= 0; --j) {
-                field[*size - 1][j] = '#';
+            // bottom border
+            for (int j = size->y - 2; j >= 0; --j) {
+                field[size->x - 1][j] = '#';
             }
-            for (int i = *size - 2; i >= 0; --i) {
+            // left border
+            for (int i = size->x - 2; i >= 0; --i) {
                 field[i][0] = '#';
             }
 
-            for (int i = 1; i < *size - 1; ++i) {
-                for (int j = 1; j < *size - 1; ++j) {
+            for (int i = 1; i < size->x - 1; ++i) {
+                for (int j = 1; j < size->y - 1; ++j) {
                     field[i][j] = ' ';
                 }
             }
 
-            field[((*size) - 1) / 2][((*size) - 1) / 2] = '0';
+            field[(size->x - 1) / 2][(size->y - 1) / 2] = '0';
             return field;
         }
 
@@ -198,17 +203,52 @@ char **createNewField(int *size, int *speed, char option) {
                 getch();
                 return NULL;
             }
-            scanf("Field Size: %d\n", size);
+
             scanf("Game Speed: %d\n", speed);
-            char **field = malloc(*size * sizeof(char *));
-            for (int i = 0; i < *size; ++i) {
-                field[i] = malloc(*size * sizeof(char));
+            fieldSize.x = 1;
+            fieldSize.y = 1;
+
+            char **field = malloc(fieldSize.x * sizeof(char *));
+            if (!field) {
+                printf("Memory allocation failed.\n");
+                exit(-1);
+            }
+            field[0] = malloc(fieldSize.y * sizeof(char));
+            if (!(*field)) {
+                printf("First row mem allocation failed.");
+                exit(1);
+            }
+            char character;
+            int j = 0;
+            while ((character = getchar()) != EOF) {
+                field[fieldSize.x - 1][j] = character;
+                if (getchar() == '\n') {
+                    ++fieldSize.x;
+                    field = realloc(field, fieldSize.x * sizeof(char *));
+                    if (!field) {
+                        printf("2D array memory reallocation failed.\n");
+                        exit(-2);
+                    }
+                    if (j > fieldSize.y) {fieldSize.y = j + 1;}
+                    j = 0;
+                    field[fieldSize.x - 1] = malloc(fieldSize.y * sizeof(char));
+                } else {
+                    ++j;
+                    if (j > fieldSize.y) {
+                        field[fieldSize.x - 1] = realloc(field[fieldSize.x - 1], (j + 1) * sizeof(char));
+                        if (!field[fieldSize.x - 1]) {
+                            printf("Row memory reallocation failed.\n");
+                            exit(-3);
+                        }
+                    }
+                }
             }
 
-            for (int i = 0; i < *size; ++i) {
-                for (int j = 0; j < *size; ++j) {
-                    scanf("%c", &field[i][j]);
-                    getchar();
+            for (int i = 0; i < fieldSize.x; ++i) {
+                field[i] = realloc(field[i], fieldSize.y * sizeof(char));
+                if (!field[i]) {
+                    printf("New max row length reallocation failed.\n");
+                    exit(-4);
                 }
             }
 
@@ -230,8 +270,8 @@ void createNewPoint(Position *point, char **field) {
 
     // Attempts to create a new random point until it's not placed on the snake
     do {
-        point->x = (rand() % (fieldSize - 2)) + 1;
-        point->y = (rand() % (fieldSize - 2)) + 1;
+        point->x = (rand() % (fieldSize.x - 2)) + 1;
+        point->y = (rand() % (fieldSize.y - 2)) + 1;
     } while ((field[point->x][point->y] == '0') || (field[point->x][point->y] == '#'));
 }
 
@@ -288,20 +328,33 @@ void move(Position *snake, int snakeSize, int *direction) {
                 next = directions[*direction];
             }
     }
+    // TODO: no border movement plox
     if (*direction != -1) {
         next.x += snake[0].x;
         next.y += snake[0].y;
         for (int i = snakeSize; i >= 0; --i) {
             snake[i] = snake[i - 1];
         }
+
         snake[0] = next;
+        if (snake[0].x >= fieldSize.x) {
+            snake[0].x = 0;
+        } else if (snake[0].x < 0) {
+            snake[0].x = fieldSize.x - 1;
+        }
+
+        if (snake[0].y >= fieldSize.y) {
+            snake[0].y = 0;
+        } else if (snake[0].y < 0) {
+            snake[0].y = fieldSize.y - 1;
+        }
     }
 }
 
 void draw(char **field) {
     system("cls");
-    for (int i = 0; i < fieldSize; ++i) {
-        for (int j = 0; j < fieldSize; ++j) {
+    for (int i = 0; i < fieldSize.x; ++i) {
+        for (int j = 0; j < fieldSize.y; ++j) {
             printf("%c ", field[i][j]);
         }
         printf("\n");
