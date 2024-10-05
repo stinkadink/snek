@@ -5,6 +5,7 @@
 #include <conio.h>
 #include <ctype.h>
 #include <string.h>
+#include <windows.h>
 
 typedef struct {
     int x;
@@ -28,6 +29,9 @@ void delay(clock_t);
 
 void draw(char **);
 
+void gotoxy(int, int);
+void redraw(Position *, Position, int);
+
 void move(Position *, int, int *);
 
 int main() {
@@ -39,6 +43,11 @@ int main() {
     if (!field) {
         goto restart;
     }
+
+    CONSOLE_CURSOR_INFO ci;
+    GetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &ci);
+    ci.bVisible = 0;
+    SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &ci);
 
     int snakeCapacity = 8;
     Position *snake = malloc(snakeCapacity * sizeof(Position));
@@ -75,7 +84,7 @@ int main() {
                 break;
             }
             updateField(field, snake, snakeSize, point);
-            draw(field);
+            redraw(snake, point, snakeSize);
             delay(gameSpeed);
         }
 
@@ -86,7 +95,8 @@ int main() {
         }
 
         updateField(field, snake, snakeSize, point);
-        draw(field);
+        //draw(field);
+        redraw(snake, point, snakeSize);
 
         if ((snake[0].x == point.x) && (snake[0].y == point.y)) {
             pointExists = false;
@@ -98,7 +108,7 @@ int main() {
 
         delay(gameSpeed);
     }
-
+    gotoxy(fieldSize.y, 0);
     printf("Game over!\n"
            "Score: %d", score);
 
@@ -160,7 +170,7 @@ char **createNewField(Position *size, int *speed, char option) {
             for (int i = 0; i < size->x; ++i) {
                 field[i] = malloc(size->y * sizeof(char));
             }
-            *speed = 10;
+            *speed = 100;
             // borders
             // upper border
             for (int j = 0; j < size->y; ++j) {
@@ -328,7 +338,7 @@ void move(Position *snake, int snakeSize, int *direction) {
                 next = directions[*direction];
             }
     }
-    // TODO: no border movement plox
+
     if (*direction != -1) {
         next.x += snake[0].x;
         next.y += snake[0].y;
@@ -359,6 +369,34 @@ void draw(char **field) {
         }
         printf("\n");
     }
+}
+
+void gotoxy(int x, int y) {
+    COORD cursorPosition;
+    cursorPosition.Y = x;
+    cursorPosition.X = y * 2;
+    SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), cursorPosition);
+}
+
+void redraw(Position *snake, Position point, int snakeSize) {
+
+    gotoxy(snake[0].x, snake[0].y);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0xA0);
+    printf("0");
+
+    gotoxy(snake[1].x, snake[1].y);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0xAA);
+    printf("O");
+
+    gotoxy(snake[snakeSize].x, snake[snakeSize].y);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x0F);
+    printf(" ");
+
+    gotoxy(point.x, point.y);
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0xCC);
+    printf("X");
+
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), 0x0F);
 }
 
 void delay(clock_t seconds) {
